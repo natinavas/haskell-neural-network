@@ -5,14 +5,7 @@ import Data.Csv
 import qualified Data.ByteString.Lazy as BS
 import qualified Data.Vector as V
 import Lib
-
-data Iris = Iris
-  { sepal_length  :: !Double
-  , sepal_width   :: !Double
-  , petal_length  :: !Double
-  , petal_width   :: !Double
-  , iris_type     :: !String
- } deriving (Show, Eq, Read)
+import IrisLib
 
 instance FromNamedRecord Iris where
   parseNamedRecord r =
@@ -22,12 +15,6 @@ instance FromNamedRecord Iris where
       <*> r .: "petal_length"
       <*> r .: "petal_width"
       <*> r .: "iris_type"
-
--- Print iris attribute values
-printIris :: Iris -> IO ()
-printIris r  = putStrLn $  show (sepal_length r)  ++ " " ++ show (sepal_width r) ++ " "
-   ++ show(petal_length r) ++ " " ++ show(petal_length r) ++ " " ++ show(iris_type r)
-
 
 main :: IO ()
 main = do

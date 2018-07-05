@@ -4,15 +4,8 @@ module Lib
 import Control.Monad
 import System.Random
 import Data.List
+import IrisLib
 import qualified Data.Vector as V
-
-data Iris = Iris
-  { sepal_length  :: !Float
-  , sepal_width   :: !Float
-  , petal_length  :: !Float
-  , petal_width   :: !Float
-  , iris_type     :: !String
- } deriving (Show, Eq, Read)
 
 gauss scale = do
   x1 <- randomIO
@@ -85,29 +78,12 @@ learn xv yv layers = let (avs, dvs) = deltas xv yv layers
     zipWith3 (\wvs av dv -> zipWith (\wv d -> descend wv ((d*) <$> av)) wvs dv)
     (snd <$> layers) avs dvs
 
--- transform label in iris data type to int value
-getLabelAux :: Iris -> Int
-getLabelAux (Iris _ _ _ _ iris_type) =
-  case iris_type of
-    "Iris-setosa" -> 1
-    "Iris-versicolor" -> 2
-    "Iris-virginica" -> 3
-    _ -> error "Not a valid iris type"
-
--- returns labels as a float array for iris type
-getLabel :: Iris -> [Float]
-getLabel iris = fromIntegral . fromEnum . (getLabelAux iris ==) <$> [1..3]
-
--- get float array with iris attributes
-getValues :: Iris -> [Float]
-getValues (Iris sepal_length sepal_width petal_length petal_width _) =
-  [sepal_length, sepal_width, petal_length, petal_width]
-
 -- Neural network recieves values and the amount of variables, middle layers
 -- and output
 -- values -> training_percentage -> input_quant -> middle_layers -> output_quantity
 -- TODO: obvio que no va a devolver int, ver bien qeu retorna
-neuralNetwork :: V.Vector a -> Double -> Int -> Int -> Int -> Int
+-- TODO: chequear que los parametros esten bien (ej: % entrenamiento no sea <=0 >=1)
+neuralNetwork :: V.Vector Iris -> Double -> Int -> Int -> Int -> Int
 neuralNetwork values training_percentage input_quant middle_layers output_quantity  = let
   network = newBrain [input_quant, middle_layers, output_quantity]
   trainingSetSize = round (fromIntegral (length values) * training_percentage)
@@ -121,6 +97,6 @@ neuralNetwork values training_percentage input_quant middle_layers output_quanti
   -- bs = foldl (foldl' (\b n -> learn (getValues testSamples) (getLabel testSample) network)) network [0.. 999999]
   -- trained_brain = last bs
   --
-  -- example = getValues head trainSamples
+  -- example = getValues
   -- putStrLn $ "best guess: " ++ show (bestOf $ feed example trained_brain)
-  in length testSamples
+  in trainingSetSize
