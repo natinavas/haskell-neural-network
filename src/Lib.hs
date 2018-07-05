@@ -7,10 +7,10 @@ import Data.List
 import qualified Data.Vector as V
 
 data Iris = Iris
-  { sepal_length  :: !Double
-  , sepal_width   :: !Double
-  , petal_length  :: !Double
-  , petal_width   :: !Double
+  { sepal_length  :: !Float
+  , sepal_width   :: !Float
+  , petal_length  :: !Float
+  , petal_width   :: !Float
   , iris_type     :: !String
  } deriving (Show, Eq, Read)
 
@@ -101,7 +101,7 @@ getLabel iris = fromIntegral . fromEnum . (getLabelAux iris ==) <$> [1..3]
 -- get float array with iris attributes
 getValues :: Iris -> [Float]
 getValues (Iris sepal_length sepal_width petal_length petal_width _) =
-  [toFloating sepal_length, toFloating sepal_width, toFloating petal_length, toFloating petal_width]
+  [sepal_length, sepal_width, petal_length, petal_width]
 
 -- Neural network recieves values and the amount of variables, middle layers
 -- and output
