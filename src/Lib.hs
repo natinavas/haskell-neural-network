@@ -83,11 +83,14 @@ learn xv yv layers = let (avs, dvs) = deltas xv yv layers
 -- values -> training_percentage -> input_quant -> middle_layers -> output_quantity
 -- TODO: obvio que no va a devolver int, ver bien qeu retorna
 -- TODO: chequear que los parametros esten bien (ej: % entrenamiento no sea <=0 >=1)
-neuralNetwork :: V.Vector Iris -> Double -> Int -> Int -> Int -> Int
+neuralNetwork :: V.Vector Iris -> Double -> Int -> Int -> Int -> String
 neuralNetwork values training_percentage input_quant middle_layers output_quantity  = let
   network = newBrain [input_quant, middle_layers, output_quantity]
   trainingSetSize = round (fromIntegral (length values) * training_percentage)
+  --TODO shuffle vector
   (testSamples, trainSamples) = V.splitAt trainingSetSize values
+  trained_network = (foldl' (\b n -> learn (getValues testSamples n) (getLabel testSamples n) network)) network [0.. 9999]
+
   -- bs is a list of trained networks, ordered by amount of training ascending
   -- bs = scanl (foldl' (\b n -> learn (getValues testSamples) (getLabel testSample) network)) network
   -- [[   0.. 999],
@@ -95,8 +98,9 @@ neuralNetwork values training_percentage input_quant middle_layers output_quanti
   --    [3000..5999],
   --    [6000..9999]]
   -- bs = foldl (foldl' (\b n -> learn (getValues testSamples) (getLabel testSample) network)) network [0.. 999999]
-  -- trained_brain = last bs
-  --
-  -- example = getValues
-  -- putStrLn $ "best guess: " ++ show (bestOf $ feed example trained_brain)
-  in trainingSetSize
+  -- trained_network = last bs
+
+  -- TODO probar con uno random de testSample y decir cual era
+  example = getValues trainSamples 5
+  -- putStrLn $ "best guess: " ++ show (bestOf $ feed example trained_network)
+  in "best guess: " -- ++ show (bestOf $ feed example trained_brain)
