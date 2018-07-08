@@ -23,6 +23,8 @@ main = do
   case decodeByName csvData :: Either String (Header, V.Vector Iris) of
     Left err -> putStrLn err
     -- Call neural network with parsed values
-    --TODO : mezclar bien los datos de entrenamiento y testeo porque sino no
-    -- agarra nunca todos los tipos
-    Right (_, iris) -> print (neuralNetwork iris 1.0 4 1 3)
+    Right (_, iris) -> do
+      network <- newBrain [4, 3, 3]
+      -- TODO : mejorar esta forma kbeza de shufflear
+      shuffledArray <- shuffle (V.toList iris)
+      print (neuralNetwork network (V.fromList shuffledArray) 0.9)

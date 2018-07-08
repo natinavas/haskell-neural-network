@@ -5,6 +5,8 @@ module IrisLib
     , getLabelAux
     , getLabel
     , getValues
+    , getLabelName
+    , getType
     ) where
 
 import qualified Data.Vector as V
@@ -22,7 +24,7 @@ printIris :: Iris -> IO ()
 printIris r  = putStrLn $  show (sepal_length r)  ++ " " ++ show (sepal_width r) ++ " "
     ++ show(petal_length r) ++ " " ++ show(petal_length r) ++ " " ++ show(iris_type r)
 
--- transform label in iris data type to int value
+-- Transform label in iris data type to int value
 getLabelAux :: Iris -> Int
 getLabelAux (Iris _ _ _ _ iris_type) =
   case iris_type of
@@ -31,18 +33,29 @@ getLabelAux (Iris _ _ _ _ iris_type) =
     "Iris-virginica" -> 3
     _ -> error "Not a valid iris type"
 
--- returns labels as a float array for iris type
+-- Transform label number into string in order to show
+getLabelName :: Int -> String
+getLabelName nr =
+  case nr of
+    1 -> "Iris setosa"
+    2 -> "Iris versicolor"
+    3 -> "Iris virginica"
+
+-- Get labels as a float array for iris type from a vector accessing through an index
 getLabel :: V.Vector Iris -> Int -> [Float]
 getLabel iris_vector index = fromIntegral . fromEnum . (getLabelAux iris ==) <$> [1..3]
   where iris = iris_vector V.! index
---getLabel iris = fromIntegral . fromEnum . (getLabelAux iris ==) <$> [1..3]
 
--- get float array with iris attributes
+-- Get float array with iris attributes for one particular iris
 getValuesAux :: Iris -> [Float]
 getValuesAux (Iris sepal_length sepal_width petal_length petal_width _) =
   [sepal_length, sepal_width, petal_length, petal_width]
 
-
+-- Get float array with iris attributes for one particular iris for one particular iris
+-- from a vector accessing through an index
 getValues :: V.Vector Iris -> Int -> [Float]
 getValues iris_vector index = getValuesAux iris
   where iris = iris_vector V.! index
+
+getType :: Iris -> String
+getType (Iris _ _ _ _ iris_type) = iris_type
