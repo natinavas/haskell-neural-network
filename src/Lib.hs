@@ -1,6 +1,7 @@
 module Lib
-    ( neuralNetwork
-    , newBrain
+    ( irisNeuralNetwork
+    , digitsNeuralNetwork
+    , initializeNeuralNetwork
     , shuffle
     ) where
 import Control.Monad
@@ -9,6 +10,8 @@ import Data.List
 import Data.Ord
 import IrisLib
 import qualified Data.Vector as V
+import qualified Data.ByteString.Lazy as BS
+import Codec.Compression.GZip (decompress)
 
 -- Box Muller Transformation
 -- Pseudo-random number sampling method for generating pairs of independent,
@@ -22,20 +25,12 @@ gauss stdev = do
 -- layers and output neurons
 -- [Float] = biases (initialized to 1), [[Float]] = weights (initialized with
 -- gauss distribution)
--- initialNetwork :: Int -> Int -> Int -> IO [([Float], [[Float]])]
--- initialNetwork ini mid out =
-
----
-newBrain :: [Int] -> IO [([Float], [[Float]])]
-newBrain szs@(_:ts) = zip (flip replicate 1 <$> ts) <$>
+-- TODO: https://www.quora.com/What-are-good-initial-weights-in-a-neural-network
+-- TODO: http://andyljones.tumblr.com/post/110998971763/an-explanation-of-xavier-initialization
+initializeNeuralNetwork :: [Int] -> IO [([Float], [[Float]])]
+initializeNeuralNetwork szs@(_:ts) = zip (flip replicate 1 <$> ts) <$>
   zipWithM (\m n -> replicateM n $ replicateM m $ gauss 0.01) szs ts
-newBrain _ = error "Neural network couldn't be created: An empty list of parameters was provided"
----
-
--- initialBiases :: Int -> [Float]
---
---
--- initialLayers :: Int -> [[Float]]
+initializeNeuralNetwork _ = error "Neural network couldn't be created: An empty list of parameters was provided"
 
 -- Hyperbolic tangent will be used as activation function
 activationFunction :: Float -> Float
@@ -51,19 +46,19 @@ activationFunction' :: Float -> Float
 activationFunction' x = 1 - square (tanh x)
 
 -- Save previous weights, used for backpropagation
-zLayer :: [Float] -> ([Float], [[Float]]) -> [Float]
-zLayer as (bias, weight_vec) = zipWith (+) bias $ sum . zipWith (*) as <$> weight_vec
+previousWeights :: [Float] -> ([Float], [[Float]]) -> [Float]
+previousWeights as (bias, weight_vec) = zipWith (+) bias $ sum . zipWith (*) as <$> weight_vec
 
--- Feedforward algorithm, information moves to next layers
-feed :: [Float] -> [([Float], [[Float]])] -> [Float]
-feed = foldl' (((activationFunction <$>) . ) . zLayer)
+-- feedForwardforward algorithm, information moves to next layers
+feedForward :: [Float] -> [([Float], [[Float]])] -> [Float]
+feedForward = foldl' (((activationFunction <$>) . ) . previousWeights)
 
 -- Backpropagation algorithm needs the weights of every neuron, in reverse order
 -- this method gives the values (weighted inputs, activations) in reverse order
 -- (from last to first layer)
 reverseValues :: [Float] -> [([Float], [[Float]])] -> ([[Float]], [[Float]])
 reverseValues xv = foldl' (\(avs@(av:_), zs) (bs, wms) -> let
-  zs' = zLayer av (bs, wms) in (((activationFunction <$> zs'):avs), (zs':zs))) ([xv], [])
+  zs' = previousWeights av (bs, wms) in (((activationFunction <$> zs'):avs), (zs':zs))) ([xv], [])
 
 -- any value greater than 1 is the same as 1
 dCost a y | y == 1 && a >= y = 0 | otherwise = a - y
@@ -106,13 +101,62 @@ shuffle lst = do
         ([], s) -> error $ "failed at index " ++ show n -- should never match
         (r, s)  -> (last r, init r ++ s)
 
+-- TODO: METER TODO EN UN NEURAL NETWORK ESTO ES MUY KBEZA
+
 -- TODO: chequear que los parametros esten bien (ej: % entrenamiento no sea <=0 >=1)
-neuralNetwork :: [([Float], [[Float]])] -> V.Vector Iris -> Double -> String
-neuralNetwork network values training_percentage = let
+irisNeuralNetwork :: [([Float], [[Float]])] -> V.Vector Iris -> Double -> String
+irisNeuralNetwork network values training_percentage = let
   trainingSetSize = round (fromIntegral (length values) * training_percentage)
   (trainSamples, testSamples) = V.splitAt trainingSetSize values
   trained_network = (foldl' (\b n -> learn (getValues trainSamples n) (getLabel trainSamples n) network)) network [0.. trainingSetSize - 1]
-  test_index = 23
+  test_index = 2
   example = getValues trainSamples 56
-  bestOf = fst . maximumBy (comparing snd) . zip [1..3]
-  in "best guess: " ++ getLabelName(bestOf $ feed example trained_network) ++ show example ++ " " ++  (getType (trainSamples V.! 56))
+  -- bestOf gets the output neuron with the biggest value
+  bestOf = fst . maximumBy (comparing snd) . zip [1..]
+
+  guesses = bestOf . (\n -> feedForward (getValues testSamples n) trained_network) <$> [0..((length testSamples) - 1)]
+  answers = getLabelNumberVec testSamples -- <$> [0..((length testSamples) - 1)]
+  in show(trained_network) ++ show(network) ++ show(guesses)
+--  in show (sum $ fromEnum <$> zipWith (==) guesses answers)
+--  in "best guess: " ++ getLabelName(bestOf $ feedForward example trained_network) ++ show example ++ " " ++  (getType (trainSamples V.! 56))
+
+getImage s n = fromIntegral . BS.index s . (n*28^2 + 16 +) <$> [0..28^2 - 1]
+getX     s n = (/ 256) <$> getImage s n
+getLabelDig s n = fromIntegral $ BS.index s (n + 8)
+getY     s n = fromIntegral . fromEnum . (getLabelDig s n ==) <$> [0..9]
+
+render n = let s = " .:oO@" in s !! (fromIntegral n * length s `div` 256)
+
+
+digitsNeuralNetwork :: IO()
+digitsNeuralNetwork = do
+  [trainI, trainL, testI, testL] <- mapM ((decompress  <$>) . BS.readFile)
+    [ "digits/train-images-idx3-ubyte.gz"
+    , "digits/train-labels-idx1-ubyte.gz"
+    , "digits/t10k-images-idx3-ubyte.gz"
+    , "digits/t10k-labels-idx1-ubyte.gz"
+    ]
+  b <- initializeNeuralNetwork [784, 30, 10]
+  n <- (`mod` 10000) <$> randomIO
+  putStr . unlines $
+    take 28 $ take 28 <$> iterate (drop 28) (render <$> getImage testI n)
+
+  let
+    example = getX testI n
+    bs = scanl (foldl' (\b n -> learn (getX trainI n) (getY trainL n) b)) b [
+     [   0.. 999],
+     [1000..2999],
+     [3000..5999],
+     [6000..9999]]
+    smart = last bs
+    cute d score = show d ++ ": " ++ replicate (round $ 70 * min 1 score) '+'
+    bestOf = fst . maximumBy (comparing snd) . zip [0..]
+
+  forM_ bs $ putStrLn . unlines . zipWith cute [0..9] . feedForward example
+
+  putStrLn $ "best guess: " ++ show (bestOf $ feedForward example smart)
+
+  let guesses = bestOf . (\n -> feedForward (getX testI n) smart) <$> [0..9999]
+  let answers = getLabelDig testL <$> [0..9999]
+  putStrLn $ show (sum $ fromEnum <$> zipWith (==) guesses answers) ++
+    " / 10000"
