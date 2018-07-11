@@ -103,8 +103,7 @@ shuffle lst = do
         ([], s) -> error $ "failed at index " ++ show n -- should never match
         (r, s)  -> (last r, init r ++ s)
 
--- train_iris_network :: Int -> V.Vector Iris -> [[([Float], [[Float]])]] -> Int -> [[([Float], [[Float]])]]
--- train_iris_network 0 train_samples network_seq training_set_size = network_seq
+train_iris_network :: Int -> V.Vector Iris -> [[([Float], [[Float]])]] -> Int -> [[([Float], [[Float]])]]
 train_iris_network iteration train_samples network_seq training_set_size
   | iteration == 0  = network_seq
   | otherwise = train_iris_network it train_samples bs training_set_size
@@ -125,83 +124,23 @@ irisNeuralNetwork network values training_percentage = do
     training_set_size = round (fromIntegral (length values) * training_percentage)
     testing_set_size = (V.length values) - training_set_size
     (train_samples, test_samples) = V.splitAt training_set_size values
-    trained_networkk = (foldl' (\b n -> learn (getValues train_samples n) (getLabel train_samples n) network)) network [0.. training_set_size - 1]
-
     -- bestOf gets the output neuron with the biggest value
     bestOf = fst . maximumBy (comparing snd) . zip [1..]
-    -- Select a random example out of the test samples
+  -- Select a random example out of the test samples
   random_sample_index <- (`mod` testing_set_size) <$> randomIO
   putStr "The chosen example is of type: "
   print (getLabelName(getLabelNumber (test_samples V.! random_sample_index)))
   print (getLabelNumber (test_samples V.! random_sample_index))
   let
-    bs = scanl (foldl' (\b n -> learn (getValues train_samples n) (getLabel train_samples n) b)) network [
-     [0..20],
-     [20..30],
-     [30..50],
-     [50..training_set_size-1]]
-    trained_brain = last bs
-    bs2 = scanl (foldl' (\b n -> learn (getValues train_samples n) (getLabel train_samples n) b)) trained_brain [
-     [0..20],
-     [20..30],
-     [30..50],
-     [50..training_set_size-1]]
-    trained_brain2 = last bs2
-    bs3 = scanl (foldl' (\b n -> learn (getValues train_samples n) (getLabel train_samples n) b)) trained_brain2 [
-     [0..20],
-     [20..30],
-     [30..50],
-     [50..training_set_size-1]]
-    trained_brain3 = last bs3
-    bs4 = scanl (foldl' (\b n -> learn (getValues train_samples n) (getLabel train_samples n) b)) trained_brain3 [
-     [0..20],
-     [20..30],
-     [30..50],
-     [50..training_set_size-1]]
-    trained_brain4 = last bs4
-    bs5 = scanl (foldl' (\b n -> learn (getValues train_samples n) (getLabel train_samples n) b)) trained_brain4 [
-     [0..20],
-     [20..30],
-     [30..50],
-     [50..training_set_size-1]]
-    trained_brain5 = last bs5
-    bs6 = scanl (foldl' (\b n -> learn (getValues train_samples n) (getLabel train_samples n) b)) trained_brain5 [
-     [0..20],
-     [20..30],
-     [30..50],
-     [50..training_set_size-1]]
-    trained_brain6 = last bs6
-    bs7 = scanl (foldl' (\b n -> learn (getValues train_samples n) (getLabel train_samples n) b)) trained_brain6 [
-     [0..20],
-     [20..30],
-     [30..50],
-     [50..training_set_size-1]]
-    trained_brain7 = last bs7
-    bs8 = scanl (foldl' (\b n -> learn (getValues train_samples n) (getLabel train_samples n) b)) trained_brain7 [
-     [0..20],
-     [20..30],
-     [30..50],
-     [50..training_set_size-1]]
-    trained_brain8 = last bs8
-    bs9 = scanl (foldl' (\b n -> learn (getValues train_samples n) (getLabel train_samples n) b)) trained_brain8 [
-     [0..20],
-     [20..30],
-     [30..50],
-     [50..training_set_size-1]]
-    trained_brain9 = last bs9
-    bs10 = scanl (foldl' (\b n -> learn (getValues train_samples n) (getLabel train_samples n) b)) trained_brain9 [
-     [0..20],
-     [20..30],
-     [30..50],
-     [50..training_set_size-1]]
-    trained_brain10 = last bs10
+    network_seq = train_iris_network 50 train_samples [network] training_set_size
+    trained_network = last network_seq
     cute d score = show d ++ ": " ++ replicate (round $ 70 * min 1 score) '+'
     example = getValues test_samples random_sample_index
-  forM_ bs10 $ putStrLn . unlines . zipWith cute [1..3] . feedForward example
+  forM_ network_seq $ putStrLn . unlines . zipWith cute [1..3] . feedForward example
   putStr "Best guess: "
-  print (getLabelName(bestOf $ feedForward example trained_brain10))
+  print (getLabelName(bestOf $ feedForward example trained_network))
   let
-   guesses = bestOf . (\n -> feedForward (getValues test_samples n) trained_brain10) <$> [0..(testing_set_size - 1)]
+   guesses = bestOf . (\n -> feedForward (getValues test_samples n) trained_network) <$> [0..(testing_set_size - 1)]
    answers = (getLabelNumberVec test_samples) -- <$> [0..((length test_samples) - 1)]
   print (guesses)
   print (answers)
