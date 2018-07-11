@@ -77,7 +77,7 @@ deltas input output layers = let
     f (wm:wms) (zv:zvs) dvs@(dv:_) = f wms zvs $ (:dvs) $
       zipWith (*) [(sum $ zipWith (*) row dv) | row <- wm] (activationFunction' <$> zv)
 
-eta = 0.08
+eta = 0.07
 
 descend av dv = zipWith (-) av ((eta *) <$> dv)
 
@@ -151,13 +151,43 @@ irisNeuralNetwork network values training_percentage = do
      [30..50],
      [50..training_set_size-1]]
     trained_brain5 = last bs5
+    bs6 = scanl (foldl' (\b n -> learn (getValues train_samples n) (getLabel train_samples n) b)) trained_brain5 [
+     [0..20],
+     [20..30],
+     [30..50],
+     [50..training_set_size-1]]
+    trained_brain6 = last bs6
+    bs7 = scanl (foldl' (\b n -> learn (getValues train_samples n) (getLabel train_samples n) b)) trained_brain6 [
+     [0..20],
+     [20..30],
+     [30..50],
+     [50..training_set_size-1]]
+    trained_brain7 = last bs7
+    bs8 = scanl (foldl' (\b n -> learn (getValues train_samples n) (getLabel train_samples n) b)) trained_brain7 [
+     [0..20],
+     [20..30],
+     [30..50],
+     [50..training_set_size-1]]
+    trained_brain8 = last bs8
+    bs9 = scanl (foldl' (\b n -> learn (getValues train_samples n) (getLabel train_samples n) b)) trained_brain8 [
+     [0..20],
+     [20..30],
+     [30..50],
+     [50..training_set_size-1]]
+    trained_brain9 = last bs9
+    bs10 = scanl (foldl' (\b n -> learn (getValues train_samples n) (getLabel train_samples n) b)) trained_brain9 [
+     [0..20],
+     [20..30],
+     [30..50],
+     [50..training_set_size-1]]
+    trained_brain10 = last bs10
     cute d score = show d ++ ": " ++ replicate (round $ 70 * min 1 score) '+'
     example = getValues test_samples random_sample_index
-  forM_ bs5 $ putStrLn . unlines . zipWith cute [1..3] . feedForward example
+  forM_ bs10 $ putStrLn . unlines . zipWith cute [1..3] . feedForward example
   putStr "Best guess: "
-  print (getLabelName(bestOf $ feedForward example trained_brain5))
+  print (getLabelName(bestOf $ feedForward example trained_brain10))
   let
-   guesses = bestOf . (\n -> feedForward (getValues test_samples n) trained_brain5) <$> [0..(testing_set_size - 1)]
+   guesses = bestOf . (\n -> feedForward (getValues test_samples n) trained_brain10) <$> [0..(testing_set_size - 1)]
    answers = (getLabelNumberVec test_samples) -- <$> [0..((length test_samples) - 1)]
   print (guesses)
   print (answers)
