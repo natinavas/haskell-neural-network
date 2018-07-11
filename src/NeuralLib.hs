@@ -76,6 +76,7 @@ deltas input output layers = let
     f (wm:wms) (zv:zvs) dvs@(dv:_) = f wms zvs $ (:dvs) $
       zipWith (*) [(sum $ zipWith (*) row dv) | row <- wm] (activationFunction' <$> zv)
 
+-- Learning rate
 eta = 0.07
 
 descend av dv = zipWith (-) av ((eta *) <$> dv)
@@ -89,7 +90,7 @@ learn input output layers = let (avs, dvs) = deltas input output layers
     zipWith3 (\wvs av dv -> zipWith (\wv d -> descend wv ((d*) <$> av)) wvs dv)
     (snd <$> layers) avs dvs
 
--- Run several iterations to train network with the same training values 
+-- Run several iterations to train network with the same training values
 train_iris_network :: Int -> V.Vector Iris -> [[([Float], [[Float]])]] -> Int -> [[([Float], [[Float]])]]
 train_iris_network iteration train_samples network_seq training_set_size
   | iteration == 0  = network_seq
@@ -105,8 +106,9 @@ train_iris_network iteration train_samples network_seq training_set_size
 
 -- TODO: METER TODO EN UN NEURAL NETWORK ESTO ES MUY KBEZA
 -- TODO : ver de arreglar la cantidad de dos y lets que estan mezclados cualquieramente
-irisNeuralNetwork :: [([Float], [[Float]])] -> V.Vector Iris -> Double -> IO()
-irisNeuralNetwork network values training_percentage = do
+irisNeuralNetwork :: V.Vector Iris -> Double -> IO()
+irisNeuralNetwork values training_percentage = do
+  network <- initializeNeuralNetwork [4, 5, 3]
   let
     training_set_size = round (fromIntegral (length values) * training_percentage)
     testing_set_size = (V.length values) - training_set_size

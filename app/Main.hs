@@ -39,13 +39,13 @@ irisMain = do
   -- Load file
   csvData <- BS.readFile "./iris/test-iris.csv"
   case decodeByName csvData :: Either String (Header, V.Vector Iris) of
+    -- Print error
     Left err -> putStrLn err
     -- Call neural network with parsed values
     Right (_, iris) -> do
-      network <- initializeNeuralNetwork [4, 5, 3]
       -- TODO : mejorar esta forma kbeza de shufflear
       shuffledArray <- shuffle (V.toList iris)
-      irisNeuralNetwork network (V.fromList shuffledArray) 0.65
+      irisNeuralNetwork (V.fromList shuffledArray) 0.65
 
 render n = let s = " .:oO@" in s !! (fromIntegral n * length s `div` 256)
 
