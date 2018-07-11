@@ -35,9 +35,8 @@ getLabelNumber (Iris _ _ _ _ iris_type) =
     "Iris-virginica" -> 3
     _ -> error "Not a valid iris type"
 
-getLabelNumberVec :: V.Vector Iris -> [Int]
-getLabelNumberVec vec = map getLabelNumber list
-  where list = V.toList vec
+getLabelNumberVec :: [Iris] -> [Int]
+getLabelNumberVec list = map getLabelNumber list
 
 -- Transform label number into string in order to show
 getLabelName :: Int -> String
@@ -48,9 +47,9 @@ getLabelName nr =
     3 -> "Iris virginica"
 
 -- Get labels as a float array for iris type from a vector accessing through an index
-getLabel :: V.Vector Iris -> Int -> [Float]
+getLabel :: [Iris] -> Int -> [Float]
 getLabel iris_vector index = fromIntegral . fromEnum . (getLabelNumber iris ==) <$> [1..3]
-  where iris = iris_vector V.! index
+  where iris = iris_vector !! index
 
 -- Get float array with iris attributes for one particular iris
 getValuesAux :: Iris -> [Float]
@@ -60,9 +59,9 @@ getValuesAux (Iris sepal_length sepal_width petal_length petal_width _) =
 -- TODO : NORMALIZAR LOS DATOS OJO CON ESTO!!!!!
 -- Get float array with iris attributes for one particular iris for one particular iris
 -- from a vector accessing through an index
-getValues :: V.Vector Iris -> Int -> [Float]
+getValues :: [Iris] -> Int -> [Float]
 getValues iris_vector index = getValuesAux iris
-  where iris = iris_vector V.! index
+  where iris = iris_vector !! index
 
 getType :: Iris -> String
 getType (Iris _ _ _ _ iris_type) = iris_type

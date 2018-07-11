@@ -9,7 +9,6 @@ import Data.List
 import Data.Ord
 import IrisLib
 import DigitsLib
-import qualified Data.Vector as V
 import qualified Data.ByteString.Lazy as BS
 import Codec.Compression.GZip (decompress)
 
@@ -91,7 +90,7 @@ learn input output layers = let (avs, dvs) = deltas input output layers
     (snd <$> layers) avs dvs
 
 -- Run several iterations to train network with the same training values
-train_iris_network :: Int -> V.Vector Iris -> [[([Float], [[Float]])]] -> Int -> [[([Float], [[Float]])]]
+train_iris_network :: Int -> [Iris] -> [[([Float], [[Float]])]] -> Int -> [[([Float], [[Float]])]]
 train_iris_network iteration train_samples network_seq training_set_size
   | iteration == 0  = network_seq
   | otherwise = train_iris_network it train_samples bs training_set_size
@@ -106,20 +105,20 @@ train_iris_network iteration train_samples network_seq training_set_size
 
 -- TODO: METER TODO EN UN NEURAL NETWORK ESTO ES MUY KBEZA
 -- TODO : ver de arreglar la cantidad de dos y lets que estan mezclados cualquieramente
-irisNeuralNetwork :: V.Vector Iris -> Double -> IO()
+irisNeuralNetwork :: [Iris] -> Double -> IO()
 irisNeuralNetwork values training_percentage = do
   network <- initializeNeuralNetwork [4, 5, 3]
   let
     training_set_size = round (fromIntegral (length values) * training_percentage)
-    testing_set_size = (V.length values) - training_set_size
-    (train_samples, test_samples) = V.splitAt training_set_size values
+    testing_set_size = (length values) - training_set_size
+    (train_samples, test_samples) = splitAt training_set_size values
     -- bestOf gets the output neuron with the biggest value
     bestOf = fst . maximumBy (comparing snd) . zip [1..]
   -- Select a random example out of the test samples
   random_sample_index <- (`mod` testing_set_size) <$> randomIO
   putStr "The chosen example is of type: "
-  print (getLabelName(getLabelNumber (test_samples V.! random_sample_index)))
-  print (getLabelNumber (test_samples V.! random_sample_index))
+  print (getLabelName(getLabelNumber (test_samples !! random_sample_index)))
+  print (getLabelNumber (test_samples !! random_sample_index))
   let
     network_seq = train_iris_network 100 train_samples [network] training_set_size
     trained_network = last network_seq

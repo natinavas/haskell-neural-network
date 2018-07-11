@@ -44,8 +44,8 @@ irisMain = do
     -- Call neural network with parsed values
     Right (_, iris) -> do
       -- TODO : mejorar esta forma kbeza de shufflear
-      shuffledArray <- shuffle (V.toList iris)
-      irisNeuralNetwork (V.fromList shuffledArray) 0.65
+      shuffledArray <- shuffle (V.toList iris) 
+      irisNeuralNetwork (shuffledArray) 0.65
 
 render n = let s = " .:oO@" in s !! (fromIntegral n * length s `div` 256)
 
