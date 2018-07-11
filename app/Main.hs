@@ -7,6 +7,7 @@ import qualified Data.ByteString.Lazy as BS
 import qualified Data.Vector as V
 import Lib
 import IrisLib
+import DigitsLib
 import Codec.Compression.GZip (decompress)
 import System.Random
 
@@ -40,10 +41,10 @@ irisMain = do
     Left err -> putStrLn err
     -- Call neural network with parsed values
     Right (_, iris) -> do
-      network <- initializeNeuralNetwork [4, 3, 3]
+      network <- initializeNeuralNetwork [4, 5, 3]
       -- TODO : mejorar esta forma kbeza de shufflear
       shuffledArray <- shuffle (V.toList iris)
-      print (irisNeuralNetwork network (V.fromList shuffledArray) 0.65)
+      irisNeuralNetwork network (V.fromList shuffledArray) 0.65
 
 render n = let s = " .:oO@" in s !! (fromIntegral n * length s `div` 256)
 

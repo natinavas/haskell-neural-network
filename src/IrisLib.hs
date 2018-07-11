@@ -4,6 +4,7 @@ module IrisLib
     , printIris
     , getLabel
     , getValues
+    , getValuesAux
     , getLabelName
     , getLabelNumber
     , getLabelNumberVec
@@ -56,6 +57,7 @@ getValuesAux :: Iris -> [Float]
 getValuesAux (Iris sepal_length sepal_width petal_length petal_width _) =
   [sepal_length, sepal_width, petal_length, petal_width]
 
+-- TODO : NORMALIZAR LOS DATOS OJO CON ESTO!!!!!
 -- Get float array with iris attributes for one particular iris for one particular iris
 -- from a vector accessing through an index
 getValues :: V.Vector Iris -> Int -> [Float]
