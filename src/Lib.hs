@@ -103,6 +103,20 @@ shuffle lst = do
         ([], s) -> error $ "failed at index " ++ show n -- should never match
         (r, s)  -> (last r, init r ++ s)
 
+-- train_iris_network :: Int -> V.Vector Iris -> [[([Float], [[Float]])]] -> Int -> [[([Float], [[Float]])]]
+-- train_iris_network 0 train_samples network_seq training_set_size = network_seq
+train_iris_network iteration train_samples network_seq training_set_size
+  | iteration == 0  = network_seq
+  | otherwise = train_iris_network it train_samples bs training_set_size
+  where
+    network = last network_seq
+    it = iteration - 1
+    bs = scanl (foldl' (\b n -> learn (getValues train_samples n) (getLabel train_samples n) b)) network [
+     [0..20],
+     [20..30],
+     [30..50],
+     [50..training_set_size-1]] :: [[([Float], [[Float]])]]
+
 -- TODO: METER TODO EN UN NEURAL NETWORK ESTO ES MUY KBEZA
 -- TODO : ver de arreglar la cantidad de dos y lets que estan mezclados cualquieramente
 irisNeuralNetwork :: [([Float], [[Float]])] -> V.Vector Iris -> Double -> IO()
