@@ -6,6 +6,7 @@ import Data.Csv
 import qualified Data.ByteString.Lazy as BS
 import qualified Data.Vector as V
 import Lib
+import NeuralLib
 import IrisLib
 import DigitsLib
 import Codec.Compression.GZip (decompress)
