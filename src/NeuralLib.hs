@@ -51,6 +51,7 @@ previousWeights :: [Float] -> ([Float], [[Float]]) -> [Float]
 previousWeights actual_value (bias, weights) = zipWith (+) bias (map (sum.(zipWith (*) actual_value)) weights)
 
 -- FeedForwardforward algorithm, information moves to next layers
+-- Use foldl to go through all layers of neural network, applies composition of previous weights with activation function
 feedForward :: [Float] -> [([Float], [[Float]])] -> [Float]
 feedForward = foldl ((fmap activationFunction . ) . previousWeights)
 
@@ -58,13 +59,13 @@ feedForward = foldl ((fmap activationFunction . ) . previousWeights)
 -- this method gives the values (weighted inputs, activations) in reverse order
 -- (from last to first layer)
 reverseValues :: [Float] -> [([Float], [[Float]])] -> ([[Float]], [[Float]])
-reverseValues input = foldl' (\(avs@(av:_), zs) (bs, wms) -> let
-  zs' = previousWeights av (bs, wms) in (((activationFunction <$> zs'):avs), (zs':zs))) ([input], [])
+reverseValues input = foldl' (\(activation_values@(av:_), zs) (bs, wms) -> let
+  zs' = previousWeights av (bs, wms) in (((fmap activationFunction zs'):activation_values), (zs':zs))) ([input], [])
 
--- any value greater than 1 is the same actual_value 1
+-- any value greater than 1 is the same as 1
 -- Basically returns if a neuron has been activated or not
-perceptron_activation :: Float -> Float -> Float
-perceptron_activation a y | y == 1 && a >= y = 0 | otherwise = a - y
+perceptronActivation :: Float -> Float -> Float
+perceptronActivation a y | y == 1 && a >= y = 0 | otherwise = a - y
 
 -- input: vector of inputs
 -- output: correct outputs
@@ -72,9 +73,9 @@ perceptron_activation a y | y == 1 && a >= y = 0 | otherwise = a - y
 -- Returns list of (activations, deltas) of each layer in order.
 deltas :: [Float] -> [Float] -> [([Float], [[Float]])] -> ([[Float]], [[Float]])
 deltas input output layers = let
-  (avs@(av:_), zv:zvs) = reverseValues input layers
-  delta0 = zipWith (*) (zipWith perceptron_activation av output) (fmap activationFunction' zv)
-  in (reverse avs, f (transpose . snd <$> reverse layers) zvs [delta0]) where
+  (activation_values@(av:_), zv:zvs) = reverseValues input layers
+  delta0 = zipWith (*) (zipWith perceptronActivation av output) (fmap activationFunction' zv)
+  in (reverse activation_values, f (fmap (transpose . snd)(reverse layers)) zvs [delta0]) where
     f _ [] dvs = dvs
     f (wm:wms) (zv:zvs) dvs@(dv:_) = f wms zvs $ (:dvs) $
       zipWith (*) [(sum $ zipWith (*) row dv) | row <- wm] (activationFunction' <$> zv)
@@ -82,16 +83,20 @@ deltas input output layers = let
 -- Learning rate
 eta = 0.07
 
-descend av dv = zipWith (-) av ((eta *) <$> dv)
+-- Recieves a list of activation values and delta values and returns the substraction of the activation
+-- values with the product of the delta_values multiplied the learning rate
+descend :: [Float] -> [Float] -> [Float]
+descend activation_values delta_value = zipWith (-) activation_values (map (eta *) delta_value)
 
--- input: inputs
--- output: correct outputs
--- layers: network
-learn :: [Float] -> [Float] -> [([Float], [[Float]])] -> [([Float], [[Float]])]
-learn input output layers = let (avs, dvs) = deltas input output layers
-  in zip (zipWith descend (fst <$> layers) dvs) $
-    zipWith3 (\wvs av dv -> zipWith (\wv d -> descend wv ((d*) <$> av)) wvs dv)
-    (snd <$> layers) avs dvs
+-- This function trains a method with one sample, it receives one set of values and the corresponding label,
+-- the starting neural network and returns the trained network
+train :: [Float] -> [Float] -> [([Float], [[Float]])] -> [([Float], [[Float]])]
+train input output layers = let
+  (activation_values, delta_values) = deltas input output layers :: ([[Float]], [[Float]])
+    in zip (zipWith descend (map fst layers) delta_values)
+      (zipWith3 (\weight_values activation_value delta_value ->
+        zipWith (\wv d -> descend wv (map (d*) activation_value)) weight_values delta_value)
+        (fmap snd layers) activation_values delta_values)
 
 -- bestOf gets the output neuron with the biggest value
 bestOf = fst . maximumBy (comparing snd) . zip [0..]
@@ -109,7 +114,7 @@ train_iris_network iteration train_samples network_seq training_set_size
     network = last network_seq
     it = iteration - 1
     -- use scanl to save all the middle networks and show progress
-    bs = scanl (foldl' (\b n -> learn (getValues train_samples n) (getLabel train_samples n) b)) network [
+    bs = scanl (foldl' (\b n -> train (getValues train_samples n) (getLabel train_samples n) b)) network [
      [0..20],
      [20..30],
      [30..50],
@@ -152,7 +157,7 @@ digitsNeuralNetwork = do
     , "./digits/t10k-images-idx3-ubyte.gz"
     , "./digits/t10k-labels-idx1-ubyte.gz"
     ]
-  initial_network <- initializeNeuralNetwork [mnistFeatures, 30, mnistLabels] -- 30 neurons in middle layer
+  initial_network <- initializeNeuralNetwork [mnistFeatures, 15, mnistLabels] -- 15 neurons in middle layer
   random_image_index <- (`mod` 10000) <$> randomIO -- chooses a random image of the test images (10000 test images)
   -- draws render of chosen image and prints real digit value
   putStr . unlines $
@@ -162,11 +167,11 @@ digitsNeuralNetwork = do
   let
     -- Train neural network
     -- use scanl to save all the middle networks and show progress
-    bs = scanl (foldl' (\b n -> learn (getNormalizedImage train_images n) (getY train_labels n) b)) initial_network [
+    bs = scanl (foldl' (\b n -> train (getNormalizedImage train_images n) (getY train_labels n) b)) initial_network [
      [0.. 999],
      [1000..2999],
      [3000..5999],
-     [6000..20000]] -- Change last parameter, the larger (<60000) the more precise, but might take too long
+     [6000..10000]] -- Change last parameter, the larger (<60000) the more precise, but might take too long
     -- Select the most trained brain
     trained_brain = last bs
     -- Test the randomly selected image with the neural network
