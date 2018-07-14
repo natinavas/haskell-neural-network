@@ -30,7 +30,7 @@ getImage images image_index  = fromIntegral . BS.index images . (image_index*28^
 getNormalizedImage images image_index  = (/ 256) <$> getImage images image_index
 
 -- Gets the label for the image with image_index in images
-getLabelDig image_labels image_index  = fromIntegral $ BS.index image_labels (image_index + 8) -- +8
+getLabelDig image_labels image_index  = fromIntegral $ BS.index image_labels (image_index + 8)
 
 -- Gets label
 getY images image_index  = fromIntegral . fromEnum . (getLabelDig images image_index  ==) <$> [0..9]

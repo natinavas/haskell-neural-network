@@ -25,6 +25,7 @@ main = do
       print "You did not select a valid option, please select 1 or 2."
       main
 
+-- Used for parsing library cassava
 instance FromNamedRecord Iris where
   parseNamedRecord r =
     Iris
@@ -43,9 +44,8 @@ irisMain = do
     Left err -> putStrLn err
     -- Call neural network with parsed values
     Right (_, iris) -> do
-      -- TODO : mejorar esta forma kbeza de shufflear
-      shuffledArray <- shuffle (V.toList iris) 
-      irisNeuralNetwork (shuffledArray) 0.65
+      shuffledArray <- shuffle (V.toList iris)
+      irisNeuralNetwork (shuffledArray) 0.60
 
 render n = let s = " .:oO@" in s !! (fromIntegral n * length s `div` 256)
 

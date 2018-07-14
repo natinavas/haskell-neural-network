@@ -30,25 +30,26 @@ printIris r  = putStrLn $  show (sepal_length r)  ++ " " ++ show (sepal_width r)
 getLabelNumber :: Iris -> Int
 getLabelNumber (Iris _ _ _ _ iris_type) =
   case iris_type of
-    "Iris-setosa" -> 1
-    "Iris-versicolor" -> 2
-    "Iris-virginica" -> 3
+    "Iris-setosa" -> 0
+    "Iris-versicolor" -> 1
+    "Iris-virginica" -> 2
     _ -> error "Not a valid iris type"
-
-getLabelNumberVec :: [Iris] -> [Int]
-getLabelNumberVec list = map getLabelNumber list
 
 -- Transform label number into string in order to show
 getLabelName :: Int -> String
 getLabelName nr =
   case nr of
-    1 -> "Iris setosa"
-    2 -> "Iris versicolor"
-    3 -> "Iris virginica"
+    0 -> "Iris setosa"
+    1 -> "Iris versicolor"
+    2 -> "Iris virginica"
+
+getLabelNumberVec :: [Iris] -> [Int]
+getLabelNumberVec list = map getLabelNumber list
 
 -- Get labels as a float array for iris type from a vector accessing through an index
+
 getLabel :: [Iris] -> Int -> [Float]
-getLabel iris_vector index = fromIntegral . fromEnum . (getLabelNumber iris ==) <$> [1..3]
+getLabel iris_vector index = fromIntegral . fromEnum . (getLabelNumber iris ==) <$> [0..2]
   where iris = iris_vector !! index
 
 -- Get float array with iris attributes for one particular iris
@@ -56,7 +57,6 @@ getValuesAux :: Iris -> [Float]
 getValuesAux (Iris sepal_length sepal_width petal_length petal_width _) =
   [sepal_length, sepal_width, petal_length, petal_width]
 
--- TODO : NORMALIZAR LOS DATOS OJO CON ESTO!!!!!
 -- Get float array with iris attributes for one particular iris for one particular iris
 -- from a vector accessing through an index
 getValues :: [Iris] -> Int -> [Float]
