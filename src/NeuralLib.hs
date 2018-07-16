@@ -15,6 +15,7 @@ import Codec.Compression.GZip (decompress)
 -- Box Muller Transformation
 -- Pseudo-random number sampling method for generating pairs of independent,
 -- standard, normally distributed (zero expectation, unit variance) random numbers
+gauss :: Float -> IO Float
 gauss stdev = do
   x1 <- randomIO
   x2 <- randomIO
@@ -24,8 +25,6 @@ gauss stdev = do
 -- layers and output neurons
 -- [Float] = biases (initialized to 1), [[Float]] = weights (initialized with
 -- gauss distribution)
--- TODO: https://www.quora.com/What-are-good-initial-weights-in-a-neural-network
--- TODO: http://andyljones.tumblr.com/post/110998971763/an-explanation-of-xavier-initialization
 initializeNeuralNetwork :: [Int] -> IO [([Float], [[Float]])]
 initializeNeuralNetwork szs@(_:ts) = zip (flip replicate 1 <$> ts) <$>
   zipWithM (\m n -> replicateM n $ replicateM m $ gauss 0.01) szs ts
@@ -78,8 +77,8 @@ deltas input output layers = let
   delta0 = zipWith (*) (zipWith perceptronActivation av output) (map activationFunction' zv)
   in (reverse activation_values, f (fmap (transpose . snd)(reverse layers)) zvs [delta0]) where
     f _ [] dvs = dvs
-    f (wm:wms) (zv:zvs) dvs@(dv:_) = f wms zvs $ (:dvs) $
-      zipWith (*) [(sum (zipWith (*) row dv)) | row <- wm] (map activationFunction' zv)
+    f (wm:wms) (zv:zvs) dvs@(dv:_) = f wms zvs ((:dvs)
+      (zipWith (*) [(sum (zipWith (*) row dv)) | row <- wm] (map activationFunction' zv)))
 
 -- Learning rate
 eta = 0.07
@@ -104,7 +103,7 @@ bestOf = fst . maximumBy (comparing snd) . zip [0..]
 
 -- Return a string with the score of each category represented by +
 score_representation :: Int -> Float -> String
-score_representation category_number score = show category_number ++ ": " ++ replicate (round $ 70 * min 1 score) '+'
+score_representation category_number score = show category_number ++ ": " ++ replicate (round (70 * min 1 score)) '+'
 
 -- Run several iterations to train network with the same training values
 train_iris_network :: Int -> [Iris] -> [[([Float], [[Float]])]] -> Int -> [[([Float], [[Float]])]]
@@ -134,20 +133,19 @@ irisNeuralNetwork values training_percentage iterations = do
   putStr "The chosen example is of type: "
   print (getLabelName(getLabelNumber (test_samples !! random_sample_index)))
   let
-    -- train the network for 100 iterations
-
-    network_seq = train_iris_network 50 train_samples [network] training_set_size
+    -- train the network for iterations
+    network_seq = train_iris_network iterations train_samples [network] training_set_size
     -- pick the most trained network
     trained_network = last network_seq
     example = getValues test_samples random_sample_index
-  forM_ network_seq $ putStrLn . unlines . zipWith score_representation [0..2] . feedForward example
+  forM_ network_seq (putStrLn . unlines . zipWith score_representation [0..2] . feedForward example)
   putStr "Best guess: "
-  print (getLabelName(bestOf $ feedForward example trained_network))
+  print (getLabelName(bestOf(feedForward example trained_network)))
   let
     -- Test all the test images to find percentage of correctly classified images
    guesses = bestOf . (\n -> feedForward (getValues test_samples n) trained_network) <$> [0..(testing_set_size - 1)]
    answers = (getLabelNumberVec test_samples)
-  putStrLn $ show (sum $ fromEnum <$> zipWith (==) guesses answers) ++ " / " ++ show(testing_set_size)
+  putStrLn (show (sum (fromEnum <$> zipWith (==) guesses answers)) ++ " / " ++ show(testing_set_size))
 
 -- Main method for digits neural network
 digitsNeuralNetwork :: IO()

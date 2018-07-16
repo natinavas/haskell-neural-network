@@ -16,3 +16,5 @@ shuffle lst = do
     pickElem n = case splitAt n lst of
         ([], s) -> error $ "failed at index " ++ show n -- should never match
         (r, s)  -> (last r, init r ++ s)
+
+isInt x = x == fromInteger (round x)

@@ -44,9 +44,9 @@ irisMain = do
     Left err -> putStrLn err
     -- Call neural network with parsed values
     Right (_, iris) -> do
-      shuffledArray <- shuffle (V.toList iris)
       print "Please write amount of training epocs"
       iterations <- readLn
+      shuffledArray <- shuffle (V.toList iris)
       irisNeuralNetwork (shuffledArray) 0.60 (iterations::Int )
 
 render n = let s = " .:oO@" in s !! (fromIntegral n * length s `div` 256)
