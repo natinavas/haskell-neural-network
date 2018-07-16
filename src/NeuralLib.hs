@@ -52,15 +52,16 @@ previousWeights actual_value (bias, weights) = zipWith (+) bias (map (sum.(zipWi
 
 -- FeedForwardforward algorithm, information moves to next layers
 -- Use foldl to go through all layers of neural network, applies composition of previous weights with activation function
+-- https://stackoverflow.com/questions/20279306/what-does-f-g-mean-in-haskell
 feedForward :: [Float] -> [([Float], [[Float]])] -> [Float]
-feedForward = foldl ((fmap activationFunction . ) . previousWeights)
+feedForward = foldl (((map activationFunction) . ) . previousWeights)
 
 -- Backpropagation algorithm needs the weights of every neuron, in reverse order
--- this method gives the values (weighted inputs, activations) in reverse order
+-- this method gives the values (activations, weighted inputs) in reverse order
 -- (from last to first layer)
 reverseValues :: [Float] -> [([Float], [[Float]])] -> ([[Float]], [[Float]])
-reverseValues input = foldl' (\(activation_values@(av:_), zs) (bs, wms) -> let
-  zs' = previousWeights av (bs, wms) in (((fmap activationFunction zs'):activation_values), (zs':zs))) ([input], [])
+reverseValues input = foldl (\(activation_values@(av:_), prevW) (bias, weights) -> let
+  prevW' = previousWeights av (bias, weights) in (((map activationFunction prevW'):activation_values), (prevW':prevW))) ([input], [])
 
 -- any value greater than 1 is the same as 1
 -- Basically returns if a neuron has been activated or not
@@ -74,11 +75,11 @@ perceptronActivation a y | y == 1 && a >= y = 0 | otherwise = a - y
 deltas :: [Float] -> [Float] -> [([Float], [[Float]])] -> ([[Float]], [[Float]])
 deltas input output layers = let
   (activation_values@(av:_), zv:zvs) = reverseValues input layers
-  delta0 = zipWith (*) (zipWith perceptronActivation av output) (fmap activationFunction' zv)
+  delta0 = zipWith (*) (zipWith perceptronActivation av output) (map activationFunction' zv)
   in (reverse activation_values, f (fmap (transpose . snd)(reverse layers)) zvs [delta0]) where
     f _ [] dvs = dvs
     f (wm:wms) (zv:zvs) dvs@(dv:_) = f wms zvs $ (:dvs) $
-      zipWith (*) [(sum $ zipWith (*) row dv) | row <- wm] (activationFunction' <$> zv)
+      zipWith (*) [(sum (zipWith (*) row dv)) | row <- wm] (map activationFunction' zv)
 
 -- Learning rate
 eta = 0.07
@@ -96,7 +97,7 @@ train input output layers = let
     in zip (zipWith descend (map fst layers) delta_values)
       (zipWith3 (\weight_values activation_value delta_value ->
         zipWith (\wv d -> descend wv (map (d*) activation_value)) weight_values delta_value)
-        (fmap snd layers) activation_values delta_values)
+        (map snd layers) activation_values delta_values)
 
 -- bestOf gets the output neuron with the biggest value
 bestOf = fst . maximumBy (comparing snd) . zip [0..]
@@ -121,8 +122,8 @@ train_iris_network iteration train_samples network_seq training_set_size
      [50..training_set_size-1]] :: [[([Float], [[Float]])]]
 
 -- Main method for iris neural network
-irisNeuralNetwork :: [Iris] -> Double -> IO()
-irisNeuralNetwork values training_percentage = do
+irisNeuralNetwork :: [Iris] -> Double -> Int -> IO()
+irisNeuralNetwork values training_percentage iterations = do
   let
     training_set_size = round (fromIntegral (length values) * training_percentage)
     testing_set_size = (length values) - training_set_size
@@ -135,7 +136,7 @@ irisNeuralNetwork values training_percentage = do
   let
     -- train the network for 100 iterations
 
-    network_seq = train_iris_network 100 train_samples [network] training_set_size
+    network_seq = train_iris_network 50 train_samples [network] training_set_size
     -- pick the most trained network
     trained_network = last network_seq
     example = getValues test_samples random_sample_index
